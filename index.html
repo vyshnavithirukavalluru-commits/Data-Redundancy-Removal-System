@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Redundancy Removal System</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+</head>
+<body>
+
+  <div class="app-wrapper">
+    <header class="app-header">
+      <div class="header-inner">
+        <i class="ti ti-database-check header-icon"></i>
+        <h1 class="app-title">Data Redundancy Removal System</h1>
+        <span class="version-badge">v1.0</span>
+      </div>
+    </header>
+
+    <!-- Stats Row -->
+    <section class="stats-grid" id="stats-grid" aria-label="Summary statistics">
+      <div class="stat-card">
+        <div class="stat-label">Total Processed</div>
+        <div class="stat-value blue" id="s-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Unique Records</div>
+        <div class="stat-value green" id="s-unique">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Duplicates Blocked</div>
+        <div class="stat-value red" id="s-dupes">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">False Positives</div>
+        <div class="stat-value amber" id="s-fp">0</div>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <nav class="tabs" role="tablist" aria-label="Navigation tabs">
+      <button class="tab active" role="tab" aria-selected="true"  onclick="UI.switchTab('add', this)">
+        <i class="ti ti-plus"></i> Add Entry
+      </button>
+      <button class="tab" role="tab" aria-selected="false" onclick="UI.switchTab('bulk', this)">
+        <i class="ti ti-upload"></i> Bulk Upload
+      </button>
+      <button class="tab" role="tab" aria-selected="false" onclick="UI.switchTab('db', this)">
+        <i class="ti ti-table"></i> Database
+      </button>
+      <button class="tab" role="tab" aria-selected="false" onclick="UI.switchTab('log', this)">
+        <i class="ti ti-list-details"></i> Audit Log
+      </button>
+      <button class="tab" role="tab" aria-selected="false" onclick="UI.switchTab('settings', this)">
+        <i class="ti ti-settings"></i> Settings
+      </button>
+    </nav>
+
+    <main class="tab-content">
+
+      <!-- ADD ENTRY PANEL -->
+      <section id="tab-add" class="panel active" role="tabpanel">
+        <div class="card">
+          <div class="section-label">New Data Entry</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label for="f-name">Name <span class="required">*</span></label>
+              <input type="text" id="f-name" placeholder="e.g. Alice Johnson" autocomplete="off" />
+            </div>
+            <div class="input-group">
+              <label for="f-email">Email <span class="required">*</span></label>
+              <input type="email" id="f-email" placeholder="e.g. alice@example.com" autocomplete="off" />
+            </div>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label for="f-phone">Phone</label>
+              <input type="tel" id="f-phone" placeholder="e.g. +91 9876543210" />
+            </div>
+            <div class="input-group">
+              <label for="f-cat">Category</label>
+              <select id="f-cat">
+                <option value="Customer">Customer</option>
+                <option value="Employee">Employee</option>
+                <option value="Vendor">Vendor</option>
+                <option value="Partner">Partner</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="f-notes">Notes</label>
+            <input type="text" id="f-notes" placeholder="Optional notes" />
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" onclick="FormHandler.validateAndAdd()">
+              <i class="ti ti-shield-check"></i> Validate &amp; Add
+            </button>
+            <button class="btn" onclick="FormHandler.clearForm()">Clear</button>
+          </div>
+          <div class="result-box hidden" id="result-box" role="alert"></div>
+        </div>
+
+        <!-- Similarity card -->
+        <div class="card hidden" id="similarity-card">
+          <div class="section-label">Similarity Analysis</div>
+          <div id="similarity-details"></div>
+        </div>
+      </section>
+
+      <!-- BULK UPLOAD PANEL -->
+      <section id="tab-bulk" class="panel" role="tabpanel">
+        <div class="card">
+          <div class="section-label">Bulk CSV Upload</div>
+          <p class="hint-text">
+            Paste CSV rows below — columns: <code>name, email, phone, category</code>. One row per line. Header row is auto-detected and skipped.
+          </p>
+          <textarea
+            class="bulk-area"
+            id="bulk-input"
+            aria-label="Paste CSV data here"
+            placeholder="Alice Johnson,alice@example.com,9876543210,Customer&#10;Bob Smith,bob@example.com,9123456789,Employee"
+          ></textarea>
+          <div class="btn-row">
+            <button class="btn primary" onclick="BulkHandler.process()">
+              <i class="ti ti-upload"></i> Process &amp; Import
+            </button>
+            <button class="btn" onclick="BulkHandler.loadSample()">Load Sample Data</button>
+          </div>
+          <div class="result-box hidden" id="bulk-result" role="alert"></div>
+        </div>
+      </section>
+
+      <!-- DATABASE PANEL -->
+      <section id="tab-db" class="panel" role="tabpanel">
+        <div class="card">
+          <div class="search-row">
+            <i class="ti ti-search search-icon" aria-hidden="true"></i>
+            <input
+              type="text"
+              id="db-search"
+              placeholder="Search by name, email, category..."
+              oninput="DatabaseView.render()"
+              aria-label="Search records"
+            />
+            <select id="db-filter" onchange="DatabaseView.render()" aria-label="Filter by category">
+              <option value="">All Categories</option>
+              <option>Customer</option>
+              <option>Employee</option>
+              <option>Vendor</option>
+              <option>Partner</option>
+            </select>
+            <button class="btn danger" onclick="DatabaseView.clearAll()">
+              <i class="ti ti-trash"></i> Clear All
+            </button>
+          </div>
+          <div class="table-wrap" role="region" aria-label="Database records">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>Name</th><th>Email</th>
+                  <th>Phone</th><th>Category</th>
+                  <th>Status</th><th>Added</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="db-body">
+                <tr><td colspan="8"><div class="empty-state">
+                  <i class="ti ti-database-off" aria-hidden="true"></i>
+                  <p>No records yet. Add your first entry.</p>
+                </div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- AUDIT LOG PANEL -->
+      <section id="tab-log" class="panel" role="tabpanel">
+        <div class="card">
+          <div class="section-label">Audit Log</div>
+          <div id="audit-log" aria-live="polite">
+            <div class="empty-state">
+              <i class="ti ti-notes" aria-hidden="true"></i>
+              <p>No activity yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS PANEL -->
+      <section id="tab-settings" class="panel" role="tabpanel">
+        <div class="card">
+          <div class="section-label">Validation Thresholds</div>
+          <div class="threshold-row">
+            <label for="t-email">Email Similarity (%)</label>
+            <input type="range" min="50" max="100" value="90" id="t-email"
+              oninput="document.getElementById('tv-email').textContent = this.value + '%'" />
+            <span id="tv-email">90%</span>
+          </div>
+          <div class="threshold-row">
+            <label for="t-name">Name Similarity (%)</label>
+            <input type="range" min="50" max="100" value="80" id="t-name"
+              oninput="document.getElementById('tv-name').textContent = this.value + '%'" />
+            <span id="tv-name">80%</span>
+          </div>
+          <div class="threshold-row">
+            <label for="t-phone">Phone Similarity (%)</label>
+            <input type="range" min="50" max="100" value="95" id="t-phone"
+              oninput="document.getElementById('tv-phone').textContent = this.value + '%'" />
+            <span id="tv-phone">95%</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-label">Classification Rules</div>
+          <div class="rules-list">
+            <div class="rule-item">
+              <span class="pill duplicate">Exact Duplicate</span>
+              <p>Email matches exactly (case-insensitive). Entry is <strong>blocked</strong>.</p>
+            </div>
+            <div class="rule-item">
+              <span class="pill fuzzy">Fuzzy Duplicate</span>
+              <p>Email similarity exceeds threshold. Entry is <strong>blocked</strong> with reason shown.</p>
+            </div>
+            <div class="rule-item">
+              <span class="pill fp">False Positive</span>
+              <p>Name + phone match but email differs. Entry is <strong>added with a warning flag</strong>.</p>
+            </div>
+            <div class="rule-item">
+              <span class="pill unique">Unique</span>
+              <p>No significant similarity found. Entry is <strong>added to the database</strong>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-label">Export Database</div>
+          <div class="btn-row">
+            <button class="btn" onclick="ExportHandler.toCSV()">
+              <i class="ti ti-download"></i> Export as CSV
+            </button>
+            <button class="btn" onclick="ExportHandler.toJSON()">
+              <i class="ti ti-file-code"></i> Export as JSON
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modules loaded in dependency order -->
+  <script src="src/utils/helpers.js"></script>
+  <script src="src/utils/similarity.js"></script>
+  <script src="src/data/store.js"></script>
+  <script src="src/data/validator.js"></script>
+  <script src="src/components/stats.js"></script>
+  <script src="src/components/auditLog.js"></script>
+  <script src="src/components/databaseView.js"></script>
+  <script src="src/components/similarityCard.js"></script>
+  <script src="src/components/formHandler.js"></script>
+  <script src="src/components/bulkHandler.js"></script>
+  <script src="src/components/exportHandler.js"></script>
+  <script src="src/components/ui.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
